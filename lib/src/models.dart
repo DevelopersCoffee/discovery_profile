@@ -278,7 +278,7 @@ class ExperienceNote {
 }
 
 class ExplorationStat {
-  const ExplorationStat({
+  ExplorationStat({
     required this.id,
     required this.topicId,
     required this.completed,
@@ -288,9 +288,9 @@ class ExplorationStat {
 
   final String id;
   final String topicId;
-  final bool completed;
+  bool completed;
   final DateTime at;
-  final bool? meaningful;
+  bool? meaningful;
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -338,16 +338,21 @@ class DiscoverySettings {
     this.proactiveEnabled = true,
     this.gamificationEnabled = true,
     this.maxPromptsPerDay = 1,
+    this.questionDepth,
   });
 
   bool proactiveEnabled;
   bool gamificationEnabled;
   int maxPromptsPerDay;
 
+  /// Maximum questions in one exploration. Null means ask every useful follow-up.
+  int? questionDepth;
+
   Map<String, Object?> toJson() => {
     'proactiveEnabled': proactiveEnabled,
     'gamificationEnabled': gamificationEnabled,
     'maxPromptsPerDay': maxPromptsPerDay,
+    'questionDepth': questionDepth,
   };
 
   static DiscoverySettings fromJson(Map<String, Object?> json) {
@@ -355,6 +360,7 @@ class DiscoverySettings {
       proactiveEnabled: json['proactiveEnabled']! as bool,
       gamificationEnabled: json['gamificationEnabled']! as bool,
       maxPromptsPerDay: json['maxPromptsPerDay']! as int,
+      questionDepth: json['questionDepth'] as int?,
     );
   }
 }
@@ -387,6 +393,26 @@ class DiscoveryMetrics {
   final bool returnedByDay30;
 
   double? get meaningfulRate => completed == 0 ? null : meaningful / completed;
+
+  double? get completionRate => started == 0 ? null : completed / started;
+
+  double? get confirmationRate {
+    final resolved = confirmed + corrected + dismissed;
+    if (resolved == 0) return null;
+    return confirmed / resolved;
+  }
+}
+
+class AppliedDraft {
+  const AppliedDraft({
+    required this.memory,
+    required this.relation,
+    required this.created,
+  });
+
+  final Memory memory;
+  final PreferenceRelation relation;
+  final bool created;
 }
 
 class TopicFraming {

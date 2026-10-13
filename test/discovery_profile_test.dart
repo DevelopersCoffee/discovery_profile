@@ -362,6 +362,106 @@ void main() {
     expect(metrics.repeatExplorations, greaterThan(0));
   });
 
+  test(
+    'new evidence updates the same memory and context is not a contradiction',
+    () {
+      final document = DiscoveryDocument();
+      final movies = topic('movies');
+      final first = engine.draftFromResponses(
+        topic: movies,
+        topicLabel: 'Movies',
+        answers: {
+          'pull': engine.answerQuestion(movies.questions.first, ['new']),
+        },
+        contextLabel: 'home',
+      )!;
+      final applied = engine.applyDraft(document, first, id: 'movies')!;
+      expect(applied.created, isTrue);
+      expect(applied.relation, PreferenceRelation.compatible);
+
+      final again = engine.draftFromResponses(
+        topic: movies,
+        topicLabel: 'Movies',
+        answers: {
+          'pull': engine.answerQuestion(movies.questions.first, ['new']),
+          'surprise': engine.answerQuestion(movies.questions[1], [
+            'controlled',
+          ]),
+        },
+        contextLabel: 'home',
+      )!;
+      engine.resolve(
+        document,
+        applied.memory,
+        status: ConfirmationStatus.confirmed,
+        meaningful: true,
+      );
+      final merged = engine.applyDraft(document, again)!;
+      expect(merged.created, isFalse);
+      expect(merged.memory.id, 'movies');
+      expect(
+        merged.memory.history.map((item) => item.change),
+        contains('evidence added'),
+      );
+      expect(
+        document.memories.where(
+          (memory) => memory.topicId == 'movies' && !memory.crossTopic,
+        ),
+        hasLength(1),
+      );
+
+      final atWork = engine.draftFromResponses(
+        topic: movies,
+        topicLabel: 'Movies',
+        answers: {
+          'pull': engine.answerQuestion(movies.questions.first, ['company']),
+        },
+        contextLabel: 'work',
+      )!;
+      final contextual = engine.applyDraft(document, atWork)!;
+      expect(contextual.relation, PreferenceRelation.contextDifference);
+      expect(contextual.memory.contextSpecific, isTrue);
+      expect(contextual.memory.observation, isNot(contains('hypocrite')));
+    },
+  );
+
+  test(
+    'question depth and completion rate use starts that were not finished',
+    () {
+      final document = DiscoveryDocument();
+      document.settings.questionDepth = 1;
+      final movies = topic('movies');
+      final answers = <String, DiscoveryResponse>{};
+      final first = engine.nextQuestion(
+        topic: movies,
+        answers: answers,
+        document: document,
+      )!;
+      answers[first.id] = engine.answerQuestion(first, ['story']);
+      expect(
+        engine.nextQuestion(
+          topic: movies,
+          answers: answers,
+          document: document,
+        ),
+        isNull,
+      );
+
+      engine.recordStart(document, topicId: 'movies', at: DateTime(2026, 1, 1));
+      engine.recordStart(document, topicId: 'food', at: DateTime(2026, 1, 2));
+      engine.recordExploration(
+        document,
+        topicId: 'movies',
+        meaningful: true,
+        at: DateTime(2026, 1, 1),
+      );
+      final metrics = engine.metrics(document);
+      expect(metrics.started, 2);
+      expect(metrics.completed, 1);
+      expect(metrics.completionRate, 0.5);
+    },
+  );
+
   test('rules match the Rust engine', () {
     expect(
       confidenceFor(confirmingSessions: 0, distinctTopics: 1),

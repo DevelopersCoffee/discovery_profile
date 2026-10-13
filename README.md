@@ -8,7 +8,7 @@ Local-first personal discovery for DevelopersCoffee apps. The Dart library is th
 
 ```yaml
 dependencies:
-  discovery_profile: ^0.1.1
+  discovery_profile: ^0.1.2
 ```
 
 ## Requirement map

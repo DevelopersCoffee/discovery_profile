@@ -103,6 +103,8 @@ class DiscoveryEngine {
     required Map<String, DiscoveryResponse> answers,
     required DiscoveryDocument document,
   }) {
+    final depth = document.settings.questionDepth;
+    if (depth != null && answers.length >= depth) return null;
     for (final question in topic.questions) {
       if (answers.containsKey(question.id)) continue;
       if (!question.available(answers)) continue;
@@ -276,6 +278,76 @@ class DiscoveryEngine {
     return memory;
   }
 
+  /// Adds a new memory, or folds new evidence into the same topic and dimension.
+  /// A different situation is kept as context. A same-situation difference is a change, not a contradiction.
+  AppliedDraft? applyDraft(
+    DiscoveryDocument document,
+    InsightDraft draft, {
+    DateTime? at,
+    String? id,
+  }) {
+    final now = at ?? DateTime.now();
+    final existing = document.memories
+        .where(
+          (memory) =>
+              !memory.crossTopic &&
+              memory.topicId == draft.topicId &&
+              memory.dimension == draft.dimension &&
+              memory.status != ConfirmationStatus.dismissed,
+        )
+        .firstOrNull;
+    if (existing == null) {
+      final created = addDraft(document, draft, at: now, id: id);
+      if (created == null) return null;
+      return AppliedDraft(
+        memory: created,
+        relation: PreferenceRelation.compatible,
+        created: true,
+      );
+    }
+    final relation = relatePreferences(
+      previousSignal: dominantSignal(existing.signals),
+      previousContext: existing.contextLabel,
+      nextSignal: dominantSignal(draft.signals),
+      nextContext: draft.contextLabel,
+    );
+    existing.updatedAt = now;
+    if (relation == PreferenceRelation.compatible) {
+      existing.evidence.addAll(draft.evidence);
+      existing.signals.addAll(draft.signals);
+      if (existing.status == ConfirmationStatus.confirmed ||
+          existing.status == ConfirmationStatus.corrected) {
+        existing.confidence = confidenceFor(
+          confirmingSessions: 2,
+          distinctTopics: existing.crossTopic ? 2 : 1,
+        );
+      }
+      existing.history.add(MemoryRevision(at: now, change: 'evidence added'));
+    } else if (relation == PreferenceRelation.contextDifference) {
+      existing.contextSpecific = true;
+      existing.history.add(
+        MemoryRevision(
+          at: now,
+          change: 'context',
+          note:
+              'A different situation (${draft.contextLabel}) is not a contradiction.',
+        ),
+      );
+    } else {
+      existing.preferenceChanged = true;
+      existing.history.add(
+        MemoryRevision(
+          at: now,
+          change: 'preference changed',
+          note:
+              'New evidence differs in the same situation. Waiting for your explanation.',
+        ),
+      );
+    }
+    _refreshCrossTopic(document, now);
+    return AppliedDraft(memory: existing, relation: relation, created: false);
+  }
+
   PreferenceRelation previewRelation(
     DiscoveryDocument document,
     InsightDraft draft, {
@@ -347,6 +419,26 @@ class DiscoveryEngine {
     _refreshCrossTopic(document, now);
   }
 
+  void recordStart(
+    DiscoveryDocument document, {
+    required String topicId,
+    DateTime? at,
+  }) {
+    final now = at ?? DateTime.now();
+    final alreadyOpen = document.explorations.any(
+      (item) => item.topicId == topicId && !item.completed,
+    );
+    if (alreadyOpen) return;
+    document.explorations.add(
+      ExplorationStat(
+        id: 'start-${document.explorations.length}-${now.microsecondsSinceEpoch}',
+        topicId: topicId,
+        completed: false,
+        at: now,
+      ),
+    );
+  }
+
   void recordExploration(
     DiscoveryDocument document, {
     required String topicId,
@@ -354,6 +446,14 @@ class DiscoveryEngine {
     DateTime? at,
   }) {
     final now = at ?? DateTime.now();
+    final open = document.explorations
+        .where((item) => item.topicId == topicId && !item.completed)
+        .lastOrNull;
+    if (open != null) {
+      open.completed = true;
+      open.meaningful = meaningful;
+      return;
+    }
     document.explorations.add(
       ExplorationStat(
         id: 'explore-${document.explorations.length}-${now.microsecondsSinceEpoch}',
