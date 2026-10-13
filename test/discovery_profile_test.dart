@@ -355,6 +355,8 @@ void main() {
       at: DateTime(2026, 1, 10),
     );
     final metrics = engine.metrics(document, now: DateTime(2026, 2, 15));
+    engine.recordCrossTopicOpen(document);
+    expect(engine.metrics(document).crossTopicOpened, 1);
     expect(metrics.meaningfulRate, 0.5);
     expect(metrics.returnedByDay7, isTrue);
     expect(metrics.repeatExplorations, greaterThan(0));

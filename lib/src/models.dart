@@ -464,6 +464,7 @@ class DiscoveryDocument {
     DiscoverySettings? settings,
     Set<String>? milestonesSeen,
     this.payIntent,
+    this.crossTopicOpens = 0,
     DateTime? firstSeen,
   }) : memories = memories ?? [],
        experiences = experiences ?? [],
@@ -480,6 +481,7 @@ class DiscoveryDocument {
   final DiscoverySettings settings;
   final Set<String> milestonesSeen;
   bool? payIntent;
+  int crossTopicOpens;
   final DateTime firstSeen;
 
   Map<String, Object?> toJson() => {
@@ -490,6 +492,7 @@ class DiscoveryDocument {
     'settings': settings.toJson(),
     'milestonesSeen': milestonesSeen.toList(),
     'payIntent': payIntent,
+    'crossTopicOpens': crossTopicOpens,
     'firstSeen': firstSeen.toIso8601String(),
   };
 
@@ -520,6 +523,7 @@ class DiscoveryDocument {
         (json['settings']! as Map).cast<String, Object?>(),
       ),
       milestonesSeen: (json['milestonesSeen']! as List).cast<String>().toSet(),
+      crossTopicOpens: json['crossTopicOpens'] as int? ?? 0,
       firstSeen: DateTime.parse(json['firstSeen']! as String),
     )..payIntent = json['payIntent'] as bool?;
   }

@@ -557,6 +557,10 @@ class DiscoveryEngine {
         .toList();
   }
 
+  void recordCrossTopicOpen(DiscoveryDocument document) {
+    document.crossTopicOpens += 1;
+  }
+
   void seeMilestone(DiscoveryDocument document, String id) {
     if (milestoneAllowed(id)) document.milestonesSeen.add(id);
   }
@@ -593,12 +597,7 @@ class DiscoveryEngine {
           ? completed.length - activeTopics.length
           : (activeTopics.length > 1 ? activeTopics.length - 1 : 0),
       experiences: document.experiences.length,
-      crossTopicOpened: document.memories
-          .where(
-            (item) =>
-                item.crossTopic && item.status != ConfirmationStatus.dismissed,
-          )
-          .length,
+      crossTopicOpened: document.crossTopicOpens,
       returnedByDay7: returnedAfter(7),
       returnedByDay30: returnedAfter(30),
     );
@@ -737,7 +736,8 @@ class DiscoveryEngine {
     DiscoveryQuestion question,
     DiscoveryResponse response,
   ) {
-    if (response.values.isEmpty && question.format != QuestionFormat.shortText) {
+    if (response.values.isEmpty &&
+        question.format != QuestionFormat.shortText) {
       return null;
     }
     return switch (question.format) {
