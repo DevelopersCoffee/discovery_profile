@@ -1,0 +1,22 @@
+name: discovery_profile
+description: >-
+  Local-first personal discovery profile for DevelopersCoffee apps.
+  Adaptive questions, evidence-backed insights, and user-controlled memory.
+version: 0.1.0
+homepage: https://github.com/DevelopersCoffee/discovery_profile
+repository: https://github.com/DevelopersCoffee/discovery_profile
+issue_tracker: https://github.com/DevelopersCoffee/discovery_profile/issues
+documentation: https://github.com/DevelopersCoffee/discovery_profile#readme
+
+topics:
+  - privacy
+  - profile
+  - discovery
+  - local-first
+
+environment:
+  sdk: ^3.12.2
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.0
