@@ -219,7 +219,11 @@ mod tests {
 
     #[test]
     fn spectrum_refuses_sensitive_scales() {
-        assert!(spectrum_allowed("How vegetarian am I?", "Plant-based", "Meat-heavy"));
+        assert!(spectrum_allowed(
+            "How vegetarian am I?",
+            "Plant-based",
+            "Meat-heavy"
+        ));
         assert!(!spectrum_allowed("How ethnic am I?", "Not at all", "Very"));
         assert!(!spectrum_allowed("Food", "Religious", "Secular"));
     }
