@@ -555,6 +555,8 @@ class DiscoveryEngine {
     document.explorations.clear();
     document.prompts.clear();
     document.milestonesSeen.clear();
+    document.spectrumTopics.clear();
+    document.spectra.clear();
     document.payIntent = null;
   }
 

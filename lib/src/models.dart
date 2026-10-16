@@ -1,4 +1,5 @@
 import 'rules.dart';
+import 'spectrum.dart';
 
 class DiscoveryOption {
   const DiscoveryOption({
@@ -492,7 +493,11 @@ class DiscoveryDocument {
     this.payIntent,
     this.crossTopicOpens = 0,
     DateTime? firstSeen,
+    List<SpectrumTopic>? spectrumTopics,
+    List<SpectrumReading>? spectra,
   }) : memories = memories ?? [],
+       spectrumTopics = spectrumTopics ?? [],
+       spectra = spectra ?? [],
        experiences = experiences ?? [],
        explorations = explorations ?? [],
        prompts = prompts ?? [],
@@ -510,6 +515,13 @@ class DiscoveryDocument {
   int crossTopicOpens;
   final DateTime firstSeen;
 
+  /// Spectrum topics the person wrote or accepted. Built-in ones live in
+  /// `starterSpectra` and are not stored.
+  final List<SpectrumTopic> spectrumTopics;
+
+  /// One spectrum reading per topic.
+  final List<SpectrumReading> spectra;
+
   Map<String, Object?> toJson() => {
     'memories': memories.map((item) => item.toJson()).toList(),
     'experiences': experiences.map((item) => item.toJson()).toList(),
@@ -520,6 +532,8 @@ class DiscoveryDocument {
     'payIntent': payIntent,
     'crossTopicOpens': crossTopicOpens,
     'firstSeen': firstSeen.toIso8601String(),
+    'spectrumTopics': spectrumTopics.map((item) => item.toJson()).toList(),
+    'spectra': spectra.map((item) => item.toJson()).toList(),
   };
 
   static DiscoveryDocument fromJson(Map<String, Object?> json) {
@@ -551,6 +565,18 @@ class DiscoveryDocument {
       milestonesSeen: (json['milestonesSeen']! as List).cast<String>().toSet(),
       crossTopicOpens: json['crossTopicOpens'] as int? ?? 0,
       firstSeen: DateTime.parse(json['firstSeen']! as String),
+      spectrumTopics: (json['spectrumTopics'] as List? ?? const [])
+          .map(
+            (item) =>
+                SpectrumTopic.fromJson((item as Map).cast<String, Object?>()),
+          )
+          .toList(),
+      spectra: (json['spectra'] as List? ?? const [])
+          .map(
+            (item) =>
+                SpectrumReading.fromJson((item as Map).cast<String, Object?>()),
+          )
+          .toList(),
     )..payIntent = json['payIntent'] as bool?;
   }
 }

@@ -1,3 +1,10 @@
+## 0.2.0
+
+- Spectrum topics: deterministic position from visible answer weights, optional band terms the person can correct, confidence from answered questions and repeat sessions, and history across sessions.
+- Own spectrum topics and model-drafted topics go through the same validation, including the sensitive-topic refusal.
+- `DiscoveryDocument` stores spectrum topics and readings. Older documents without them still load. `deleteAll` clears them.
+- `dc_discovery_engine` 0.2.0 adds `spectrum_position`, `spectrum_band`, `spectrum_confidence`, and `spectrum_allowed`.
+
 ## 0.1.2
 
 - New evidence updates the same memory. A different situation stays context, and a same-situation difference is recorded as a change.

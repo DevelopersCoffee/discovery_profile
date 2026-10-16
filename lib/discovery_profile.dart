@@ -5,3 +5,4 @@ export 'src/catalog.dart';
 export 'src/engine.dart';
 export 'src/models.dart';
 export 'src/rules.dart';
+export 'src/spectrum.dart';
