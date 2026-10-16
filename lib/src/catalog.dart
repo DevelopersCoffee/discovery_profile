@@ -1,5 +1,6 @@
 import 'models.dart';
 import 'rules.dart';
+import 'spectrum.dart';
 
 DiscoveryOption opt(String label, String value, List<String> signals) {
   return DiscoveryOption(label: label, value: value, signals: signals);
@@ -616,4 +617,71 @@ const contextChoices = <String>[
   'friends',
   'travel',
   'alone',
+];
+
+/// Built-in spectrum topics. Weights run from 0 (the low end) to 100 (the
+/// high end). Band terms are suggestions the person can replace.
+const starterSpectra = <SpectrumTopic>[
+  SpectrumTopic(
+    id: 'diet',
+    label: 'How vegetarian am I?',
+    lowLabel: 'Fully plant-based',
+    highLabel: 'Meat most days',
+    source: SpectrumSource.builtIn,
+    questions: [
+      SpectrumQuestion(
+        id: 'diet_meat',
+        text: 'How often do you eat meat, such as chicken, mutton, or pork?',
+        options: [
+          SpectrumOption(label: 'Never', weight: 0),
+          SpectrumOption(label: 'A few times a month', weight: 35),
+          SpectrumOption(label: 'A few times a week', weight: 70),
+          SpectrumOption(label: 'Most days', weight: 100),
+        ],
+      ),
+      SpectrumQuestion(
+        id: 'diet_fish',
+        text: 'How often do you eat fish or seafood?',
+        options: [
+          SpectrumOption(label: 'Never', weight: 0),
+          SpectrumOption(label: 'Now and then', weight: 40),
+          SpectrumOption(label: 'Often', weight: 80),
+        ],
+      ),
+      SpectrumQuestion(
+        id: 'diet_eggs',
+        text: 'How often do you eat eggs?',
+        options: [
+          SpectrumOption(label: 'Never', weight: 0),
+          SpectrumOption(label: 'Sometimes', weight: 30),
+          SpectrumOption(label: 'Often', weight: 50),
+        ],
+      ),
+      SpectrumQuestion(
+        id: 'diet_dairy',
+        text: 'How often do you have milk, curd, paneer, or cheese?',
+        options: [
+          SpectrumOption(label: 'Never', weight: 0),
+          SpectrumOption(label: 'Sometimes', weight: 20),
+          SpectrumOption(label: 'Every day', weight: 30),
+        ],
+      ),
+      SpectrumQuestion(
+        id: 'diet_choice',
+        text:
+            'With a free choice between a veg and a non-veg dish, you usually pick:',
+        options: [
+          SpectrumOption(label: 'Veg, always', weight: 0),
+          SpectrumOption(label: 'It depends on the dish', weight: 50),
+          SpectrumOption(label: 'Non-veg', weight: 100),
+        ],
+      ),
+    ],
+    bands: [
+      SpectrumBand(upper: 3, term: 'vegan'),
+      SpectrumBand(upper: 20, term: 'vegetarian'),
+      SpectrumBand(upper: 45, term: 'flexitarian'),
+      SpectrumBand(upper: 100, term: 'omnivore'),
+    ],
+  ),
 ];

@@ -133,3 +133,52 @@ String? dominantSignal(List<String> signals) {
     ..sort((a, b) => b.value.compareTo(a.value));
   return ranked.first.key;
 }
+
+/// Lowest and highest weight an answer can place on a spectrum.
+const spectrumMin = 0;
+const spectrumMax = 100;
+
+/// Rounded mean of the chosen answer weights, in integers so it matches
+/// `dc_discovery_engine` exactly. Skipped questions are left out. `null`
+/// means nothing was answered. The position describes the person's own
+/// answers and is never compared with other people.
+int? spectrumPosition(List<int> weights) {
+  if (weights.isEmpty) return null;
+  final count = weights.length;
+  var sum = 0;
+  for (final weight in weights) {
+    sum += weight.clamp(spectrumMin, spectrumMax);
+  }
+  return (2 * sum + count) ~/ (2 * count);
+}
+
+/// Index of the first band whose inclusive upper bound contains [position].
+int? spectrumBand(int position, List<int> upperBounds) {
+  for (var index = 0; index < upperBounds.length; index++) {
+    if (position <= upperBounds[index]) return index;
+  }
+  return null;
+}
+
+/// Three answered questions make a spectrum read emerging. A later session
+/// that lands in the same band makes it supported.
+Confidence spectrumConfidence({
+  required int answered,
+  required int confirmingSessions,
+}) {
+  if (answered >= 3 && confirmingSessions >= 1) return Confidence.supported;
+  if (answered >= 3) return Confidence.emerging;
+  return Confidence.hypothesis;
+}
+
+/// A spectrum topic, including one a person or a model writes, must pass the
+/// sensitive-topic refusal on its label and on both ends of the scale.
+bool spectrumAllowed({
+  required String label,
+  required String lowLabel,
+  required String highLabel,
+}) {
+  return topicAllowed(label) &&
+      topicAllowed(lowLabel) &&
+      topicAllowed(highLabel);
+}

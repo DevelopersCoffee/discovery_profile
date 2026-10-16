@@ -97,6 +97,54 @@ pub fn topic_allowed(topic: &str) -> bool {
         .all(|word| word != "race")
 }
 
+/// Lowest and highest weight an answer can place on a spectrum.
+pub const SPECTRUM_MIN: u32 = 0;
+pub const SPECTRUM_MAX: u32 = 100;
+
+/// Where someone sits on a spectrum topic, from the weights of the answers
+/// they chose. It is the rounded mean, computed in integers so every platform
+/// gets the same number. Skipped questions are not passed in. `None` means
+/// nothing was answered yet. The position describes the person's own answers;
+/// it is never compared with other people.
+pub fn spectrum_position(weights: &[u32]) -> Option<u32> {
+    if weights.is_empty() {
+        return None;
+    }
+    let count = weights.len() as u64;
+    let sum: u64 = weights
+        .iter()
+        .map(|weight| u64::from((*weight).min(SPECTRUM_MAX)))
+        .sum();
+    // Round half up: (2 * sum + count) / (2 * count).
+    Some(((2 * sum + count) / (2 * count)) as u32)
+}
+
+/// The term for a position. `bands` holds the inclusive upper bound of each
+/// band in ascending order; the last band should end at `SPECTRUM_MAX`.
+/// Returns the index of the first band that contains the position.
+pub fn spectrum_band(position: u32, upper_bounds: &[u32]) -> Option<usize> {
+    upper_bounds.iter().position(|upper| position <= *upper)
+}
+
+/// A spectrum read starts as a hypothesis. Three answered questions make it
+/// emerging, and a later session that lands in the same band makes it
+/// supported.
+pub fn spectrum_confidence(answered: u32, confirming_sessions: u32) -> Confidence {
+    if answered >= 3 && confirming_sessions >= 1 {
+        Confidence::Supported
+    } else if answered >= 3 {
+        Confidence::Emerging
+    } else {
+        Confidence::Hypothesis
+    }
+}
+
+/// A spectrum topic, including one a person or a model writes, must pass the
+/// sensitive-topic refusal on its label and on both ends of the scale.
+pub fn spectrum_allowed(label: &str, low_label: &str, high_label: &str) -> bool {
+    topic_allowed(label) && topic_allowed(low_label) && topic_allowed(high_label)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,5 +194,37 @@ mod tests {
         assert!(!topic_allowed("my political ideology"));
         assert!(!topic_allowed("race and ethnicity"));
         assert!(topic_allowed("Marathi theatre"));
+    }
+
+    #[test]
+    fn spectrum_scoring_is_deterministic() {
+        assert_eq!(spectrum_position(&[]), None);
+        assert_eq!(spectrum_position(&[0, 100]), Some(50));
+        assert_eq!(spectrum_position(&[0, 0, 1]), Some(0));
+        assert_eq!(spectrum_position(&[0, 1]), Some(1));
+        assert_eq!(spectrum_position(&[10, 20, 25]), Some(18));
+        assert_eq!(spectrum_position(&[250]), Some(100));
+        assert_eq!(spectrum_band(0, &[9, 29, 49, 100]), Some(0));
+        assert_eq!(spectrum_band(30, &[9, 29, 49, 100]), Some(2));
+        assert_eq!(spectrum_band(100, &[9, 29, 49, 100]), Some(3));
+        assert_eq!(spectrum_band(100, &[9, 29]), None);
+    }
+
+    #[test]
+    fn spectrum_confidence_needs_answers_then_a_return() {
+        assert_eq!(spectrum_confidence(2, 3), Confidence::Hypothesis);
+        assert_eq!(spectrum_confidence(3, 0), Confidence::Emerging);
+        assert_eq!(spectrum_confidence(4, 1), Confidence::Supported);
+    }
+
+    #[test]
+    fn spectrum_refuses_sensitive_scales() {
+        assert!(spectrum_allowed(
+            "How vegetarian am I?",
+            "Plant-based",
+            "Meat-heavy"
+        ));
+        assert!(!spectrum_allowed("How ethnic am I?", "Not at all", "Very"));
+        assert!(!spectrum_allowed("Food", "Religious", "Secular"));
     }
 }
